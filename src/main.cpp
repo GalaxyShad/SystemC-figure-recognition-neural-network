@@ -1,9 +1,9 @@
+#include "IORam.h"
 #include "cpu.h"
-#include "mem.h"
 
 int sc_main(int argc, char *argv[]) {
     CPU cpu_core("cpu");
-    Mem memory("memory");
+    IORam memory("memory", 256);
 
     sc_clock clk("clk", sc_time(10, SC_NS));
     sc_signal<int> addr;

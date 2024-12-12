@@ -9,9 +9,11 @@ set(SystemC_INCLUDE_DIRS "../systemc/src")
 set(SystemC_LIBRARY_DIRS "../systemc/build/src")
 set(SystemC_LIBRARIES systemc)
 
-add_executable(MySystemCExecutable src/main.cpp src/cpu.cpp src/mem.cpp
+add_executable(MySystemCExecutable src/main.cpp src/cpu.cpp src/IORam.cpp
         src/pe_core.cpp
-        src/pe_core.h)
+        src/pe_core.h
+        src/NetConfigRom.cpp
+        src/NetConfigRom.h)
 
 target_link_libraries(MySystemCExecutable ${SystemC_LIBRARIES})
 

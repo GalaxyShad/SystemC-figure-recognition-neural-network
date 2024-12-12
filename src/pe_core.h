@@ -5,15 +5,6 @@
 
 using AdrSize = uint32_t; // Размер шины адреса
 
-// IO RAM
-// [1] 1
-// [2] 0
-// [49] 1
-
-// [1] 1
-// [2] 0
-// [49] 1
-
 SC_MODULE(PeCore) {
   sc_in<AdrSize> io_ram_addr_i;
   sc_in<bool> clk_i;
@@ -50,16 +41,7 @@ private:
   std::vector<uint32_t> mem_;
 };
 
-// Пока что конфигурация сети ROM
-// TODO изменить на RAM и загружать данные через IO Controller
-SC_MODULE(NetConfigRom) {
-  sc_in<bool> clk_i;
-  sc_in<AdrSize> addr_bi;
-  sc_out<uint32_t> data_bo;
-  sc_in<bool> rd_i;
 
-  // TODO pass NeuralNetwork from repo to constructor
-};
 
 SC_MODULE(FigureRecognitionMicrocontroller) {
   sc_in<bool> clk_i;
