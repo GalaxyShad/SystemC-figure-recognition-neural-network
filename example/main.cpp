@@ -4,7 +4,6 @@
 
 int sc_main(int argc, char* argv[])
 {
-    
     CPU cpu_core("cpu");
     Mem memory("memory");
     
@@ -39,7 +38,6 @@ int sc_main(int argc, char* argv[])
 
     sc_start();
 
- 
     sc_close_vcd_trace_file(wf);
     
     return(0);

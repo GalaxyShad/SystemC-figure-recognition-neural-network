@@ -2,10 +2,10 @@
 #define MYSYSTEMCPROJECT_NETCONFIGROM_H
 
 #include "../Pure-CPP20-Neural-Network/src/neural_network_model.h"
+#include "sysc/kernel/sc_module.h"
+#include "sysc/kernel/sc_module_name.h"
 #include "systemc.h"
 
-// Пока что конфигурация сети ROM
-// TODO изменить на RAM и загружать данные через IO Controller
 SC_MODULE(NetConfigRom) {
   sc_in<bool> clk_i;
   sc_in<uint32_t> addr_bi;
@@ -13,7 +13,7 @@ SC_MODULE(NetConfigRom) {
 
   sc_out<uint32_t> data_bo;
 
-  explicit NetConfigRom(NeuralNetworkModel & nn_model) {
+  explicit NetConfigRom(sc_module_name name, NeuralNetworkModel & nn_model) : ::sc_core::sc_module(name) {
     auto layers_count = nn_model.layers_count();
     auto layers_size_list = nn_model.layers_sizes_vector();
 
@@ -26,7 +26,7 @@ SC_MODULE(NetConfigRom) {
     for (auto &m : nn_model.weights()) {
       for (int out = 0; out < m.out_count(); out++) {
         for (int in = 0; in < m.in_count(); in++) {
-          float weight = m.weight_between(out, in);
+          float weight = m.weight_between(in, out);
           uint32_t float_raw = *((uint32_t *)(&weight));
 
           mem_.push_back(float_raw);

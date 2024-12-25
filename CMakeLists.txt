@@ -9,11 +9,12 @@ set(SystemC_INCLUDE_DIRS "../systemc/src")
 set(SystemC_LIBRARY_DIRS "../systemc/build/src")
 set(SystemC_LIBRARIES systemc)
 
-add_executable(MySystemCExecutable src/main.cpp src/cpu.cpp src/IORam.cpp
-        src/pe_core.cpp
-        src/pe_core.h
-        src/NetConfigRom.cpp
-        src/NetConfigRom.h)
+add_executable(MySystemCExecutable 
+        src/main.cpp 
+        "Pure-CPP20-Neural-Network/src/neural_network_model.cpp"
+        "Pure-CPP20-Neural-Network/src/neural_network.cpp"
+        "Pure-CPP20-Neural-Network/src/utils.cpp"
+)
 
 target_link_libraries(MySystemCExecutable ${SystemC_LIBRARIES})
 
