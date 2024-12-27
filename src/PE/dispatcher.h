@@ -60,6 +60,7 @@ private:
 
     u32 readed_count_ = 0;
     u32 computed_neurons_ = 0;
+    u32 compute_neuron_index_ = 0;
 
     u32 cycles_to_wait = 0;
 
@@ -210,14 +211,14 @@ private:
         if (readed_count_ >= weights_data_size_) {
             cycles_to_wait = 5;
 
-            int a = 0;
+            compute_neuron_index_ = 0;
             for (auto& i : pe_bus) {
                 i.compute_neuron_o->write(true);
                 i.rst_o->write(true);
 
-                i.out_neuron_index_o->write(a);
+                i.out_neuron_index_o->write(compute_neuron_index_);
 
-                a++;
+                compute_neuron_index_++;
             }
 
             stage_ = Stage::Compute;
@@ -248,15 +249,24 @@ private:
                 ram_bus.data_write.data_o->write(computed_neuron);
 
                 computed_neurons_++;
-                
-                i.out_neuron_index_o->write(computed_neurons_);
-                i.rst_o->write(true);
-                
 
+                i.out_neuron_index_o->write(compute_neuron_index_);
+                i.rst_o->write(true);
+
+                compute_neuron_index_++;
+                
                 cycles_to_wait = 1;
 
                 if (computed_neurons_ >= curr_layer_neurons_count_) {
-                    sc_core::sc_stop();
+                    current_layer_++;
+
+                    if (current_layer_ >= layers_count_) {
+                        sc_core::sc_stop();
+                    } else {
+                        stage_ = Stage::ReadCurrentLayerNeuronsCountRequest;
+                        computed_neurons_ = 0;
+                        compute_neuron_index_ = 0;
+                    }
                 }
 
                 return;

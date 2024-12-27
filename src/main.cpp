@@ -22,14 +22,16 @@ struct PeSignals {
 
 int sc_main(int argc, char *argv[]) {
 
-    std::string model_filename = "figures-model_o#^_-49-3-_x5each.bin";
+    std::string model_filename; 
+    // model_filename = "figures-model_o#^_-49-14-3-_x5each.bin";
+    model_filename = "figures-model_o#^_-49-3-_x5each.bin";
 
     auto path = "Pure-CPP20-Neural-Network/" + model_filename;
 
     auto neural_net_model_serialized = load_binary(path.c_str());
     auto neural_net_model = NeuralNetworkModel::deserialize(neural_net_model_serialized);
 
-    constexpr int CORES_COUNT = 10;
+    constexpr int CORES_COUNT = 1;
 
     NetConfigRom net_config("NNConfigRom", neural_net_model);
     RandomAccessMemory memory("memory", 256);
