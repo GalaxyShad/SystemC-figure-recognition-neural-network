@@ -8,13 +8,8 @@
 #include "sysc/kernel/sc_simcontext.h"
 #include "systemc"
 #include "tinyint.h"
-#include <functional>
 #include <sys/_types/_pid_t.h>
 #include <sys/wait.h>
-
-#include "shared/memory_bus.h"
-
-
 
 SC_MODULE(PeCore) {
 public:
@@ -82,6 +77,7 @@ private:
         DataReadGetPreviousLayerNeuronCount,
         DataReadWriteData,
 
+        ComputeReq,
         Compute,
         ComputeFinish
     };
@@ -90,43 +86,70 @@ private:
     u32 previous_layer_neuron_count_ = 0;
     u32 previous_layer_neuron_index_ = 0;
     u32 data_adr_ = 0;
+    
     float accumulator = 0;
 
     Stage stage_ = Stage::DataReadGetPreviousLayerNeuronCount;
+
+    u32 cycles_to_wait_ = 0;
 
 private:
     static constexpr u32 LAYERS_COUNT_ADR = 0x0000'0000;
     static constexpr u32 LAYERS_NEURON_COUNT_ADR = LAYERS_COUNT_ADR + 1;
     
 private:
-    
-
     void stage_data_read_get_previous_layer_neuron_count() {
         previous_layer_neuron_count_ = data_neurons_i->read();
 
         data_adr_ = 0;
         
         stage_ = Stage::DataReadWriteData;
+
+        cycles_to_wait_ = 1;
     }
 
     void stage_data_read_write_data() {
         auto neuron_data = data_neurons_i->read();
-        auto weight_data = data_neurons_i->read();
+        auto weight_data = data_weights_in_i->read();
 
         if (data_adr_ < previous_layer_neuron_count_) {
-            memory_write(layer_neurons_signals_, data_adr_, neuron_data);
+            layer_neurons_signals_.rd_.write(false);
+            layer_neurons_signals_.wr_.write(true);
+            layer_neurons_signals_.addr_.write(data_adr_);
+            layer_neurons_signals_.data_bo_.write(neuron_data);
         }
 
-        memory_write(layer_weights_signals_, data_adr_, weight_data);
+        layer_weights_signals_.rd_.write(false);
+        layer_weights_signals_.wr_.write(true);
+        layer_weights_signals_.addr_.write(data_adr_);
+        layer_weights_signals_.data_bo_.write(weight_data);
 
         data_adr_++;
+
+        cycles_to_wait_ = 2;
+    }
+
+    void stage_compute_req() {
+        is_computation_end_o->write(false);
+
+        auto weight_index = (output_neuron_index_i->read() * previous_layer_neuron_count_) + previous_layer_neuron_index_;
+        
+        layer_neurons_signals_.wr_.write(false);
+        layer_weights_signals_.wr_.write(false);
+        layer_neurons_signals_.rd_.write(true);
+        layer_weights_signals_.rd_.write(true);
+
+        layer_neurons_signals_.addr_.write(previous_layer_neuron_index_);
+        layer_weights_signals_.addr_.write(weight_index);
+
+        cycles_to_wait_ = 3;
+
+        stage_ = Stage::Compute;
     }
 
     void stage_compute_computations() {
-        auto weight_index = (output_neuron_index_i->read() * previous_layer_neuron_count_) + previous_layer_neuron_index_;
-        
-        auto neuron = memory_read(layer_neurons_signals_, previous_layer_neuron_index_);
-        auto weight = memory_read(layer_weights_signals_, weight_index);
+        auto neuron = layer_neurons_signals_.data_bi_.read();
+        auto weight = layer_weights_signals_.data_bi_.read();
 
         auto neuron_f = *(float*)(&neuron);
         auto weight_f = *(float*)(&weight);
@@ -136,6 +159,8 @@ private:
         previous_layer_neuron_index_++;
         if (previous_layer_neuron_index_ >= previous_layer_neuron_count_) {
             stage_ = Stage::ComputeFinish;
+        } else {
+            stage_ = Stage::ComputeReq;
         }
     }
 
@@ -146,23 +171,35 @@ private:
     void stage_compute_finish() {
         auto res = activate(accumulator);
 
-        result_neuron_o->write(res);
+        u32 res_u32 = *(u32*)&res;
+
+        result_neuron_o->write(res_u32);
 
         is_computation_end_o->write(true);
     }
 
     void reset() {
-        accumulator = 0;
-        previous_layer_neuron_count_ = 0;
         previous_layer_neuron_index_ = 0;
+
+        if (compute_mode_i->read() ) {
+            is_computation_end_o->write(false);
+            accumulator = 0;
+            stage_ = Stage::ComputeReq;
+        } else {
+            previous_layer_neuron_count_ = 0;
+            
+            stage_ = Stage::DataReadGetPreviousLayerNeuronCount;
+        }
+
         data_adr_ = 0;
-
-        is_computation_end_o->write(false);
-
-        stage_ = compute_mode_i->read() ? Stage::Compute : Stage::DataReadGetPreviousLayerNeuronCount;
     }
 
     void cycle() {
+        if (cycles_to_wait_ > 0) {
+            cycles_to_wait_--;
+            return;
+        }
+
         if (rst_i->read()) {
             reset();
             return;
@@ -175,44 +212,20 @@ private:
 
         case Stage::DataReadWriteData:
             stage_data_read_write_data();
+            break;
+
+        case Stage::ComputeReq:
+            stage_compute_req();
+            break;
 
         case Stage::Compute:
             stage_compute_computations();
+            break;
 
         case Stage::ComputeFinish:
             stage_compute_finish();
+            break;
         }
-    }
-
-    void main_thread() {
-        // cycle();
-        while (1) { cycle(); }
-    }
-
-    void memory_write(InternalMemorySignals& membus, u32 addr, u32 data) {
-        // wait();
-        membus.addr_.write(addr);
-        membus.data_bo_.write(data);
-        membus.wr_.write(1);
-
-        // wait();
-        membus.wr_.write(0);
-    }
-
-    u32 memory_read(InternalMemorySignals& membus, u32 addr) {
-        u32 data;
-
-        // wait();
-        membus.addr_.write(addr);
-        membus.rd_.write(1);
-
-        // wait();
-        membus.rd_.write(0);
-
-        // wait();
-        data = membus.data_bi_.read();
-
-        return data;
     }
 };
 

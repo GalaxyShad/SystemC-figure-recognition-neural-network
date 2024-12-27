@@ -40,18 +40,14 @@ public:
 private:
     std::vector<PeCore> pe_cores_;
 
-    
 public: 
-    Dispatcher(sc_core::sc_module_name name) 
-        : ::sc_core::sc_module(name), pe_bus(4)
+    Dispatcher(sc_core::sc_module_name name, int cores_count) 
+        : ::sc_core::sc_module(name), pe_bus(cores_count)
     {
         is_ready_o.initialize(0);
 
         SC_METHOD(cycle);
         sensitive << clk_i.pos();
-
-        SC_METHOD(on_data_net_config_change);
-        sensitive << net_config_rom_bus.data_read.data_i;
     }
 
 private:
@@ -65,119 +61,171 @@ private:
     u32 readed_count_ = 0;
     u32 computed_neurons_ = 0;
 
+    u32 cycles_to_wait = 0;
+
+    u32 computed_neuron_buffer_ = 0;
+
     bool tickusha_ = true;
 
     enum class Stage {
-        LoadNetConfig,
-        LoadNetInputLayerCount,
-        LoadLayerDataRd,
-        LoadLayerData,
-        SendLayerDataToPe,
-        SendLayerNeuronsData,
-        ComputeLayer,
-        Finished
+        // —осто€ни€ инициализации
+        ReadLayersCountRequest,
+        ReadLayersCountRead,
+        ReadInputLayerNeuronsCountRead,
+
+        // —осто€ни€ чтени€ следующего сло€
+        ReadCurrentLayerNeuronsCountRequest,
+        ReadCurrentLayerNeuronsCountRead,
+
+        ReadLayerDataRequest,
+        ReadLayerDataRead,
+        
+        Compute
+
     };
 
-    Stage stage_ = Stage::LoadNetConfig;
+    Stage stage_ = Stage::ReadLayersCountRequest;
 
 private:
     static constexpr u32 LAYERS_COUNT_ADR = 0x0000'0000;
     static constexpr u32 LAYERS_NEURON_COUNT_ADR = LAYERS_COUNT_ADR + 1;
     
 private:
-    u32 read_from_net_config(u32 adr) {
-        u32 data;
 
-        
-        data = net_config_rom_bus.data_read.data_i.read();
-
-        return data;
-    }
-
-    u32 read_from_ram(u32 adr) {
-        u32 data;
-
-        ram_bus.adr_o.write(adr);
-        ram_bus.data_read.rd_o.write(1);
-
-        data = ram_bus.data_read.data_i.read();
-
-        return data;
-    }
-
-    void stage_load_net_config() {
-        net_config_rom_bus.data_read.rd_o.write(1);
-
-        net_config_rom_bus.adr_o.write(LAYERS_COUNT_ADR);
-    }
-
-    void stage_load_net_input_layer() {
-        net_config_rom_bus.adr_o.write(LAYERS_NEURON_COUNT_ADR);
-
-        current_layer_ = 1;
-    }
-
-    void on_data_net_config_change() {
-        
-        auto data = net_config_rom_bus.data_read.data_i->read();
-
-        if (layers_count_ == 0 && data == 0)
+    void cycle() {
+        if (cycles_to_wait > 0) {
+            cycles_to_wait--;
             return;
+        }
 
         switch (stage_) {
-            case Stage::LoadNetConfig:
-                layers_count_ = data;
-
-                stage_ = Stage::LoadNetInputLayerCount;
-            break;
-
-            case Stage::LoadNetInputLayerCount:
-                curr_layer_neurons_count_ = data;
-
-                stage_ = Stage::LoadLayerData;
-            break;
-
-            case Stage::LoadLayerData:
-                prev_layer_neurons_count_ = curr_layer_neurons_count_;
-                curr_layer_neurons_count_ = data;
-
-                weights_data_size_ = prev_layer_neurons_count_ * curr_layer_neurons_count_;
-
-                stage_ = Stage::SendLayerDataToPe;
-            break;
+        case Stage::ReadLayersCountRequest:
+            stage_read_layers_count_req(); break;
+        case Stage::ReadLayersCountRead:
+            stage_read_layers_count_read(); break;
+        case Stage::ReadInputLayerNeuronsCountRead:
+            stage_read_input_layer_neurons_count(); break;
+        case Stage::ReadCurrentLayerNeuronsCountRequest:
+            stage_read_current_layer_neurons_count_request(); break;
+        case Stage::ReadCurrentLayerNeuronsCountRead:
+            stage_read_current_layer_neurons_count_read(); break;
+        case Stage::ReadLayerDataRequest:
+            stage_read_layer_data_request(); break;
+        case Stage::ReadLayerDataRead:
+            stage_read_layer_data_read(); break;
+        case Stage::Compute:
+            stage_compute(); break;
         }
     }
 
-    void stage_load_layer_data() {
+    /////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////
+
+    // INFO на чтение данных из пам€ти уходит 3 такта
+    // 1. выставление адреса и флага чтени€ пам€ти
+    // 2. ожидание чтобы пам€ти отработала 
+    // 3. чтение результата data шины пам€ти
+
+    void stage_read_layers_count_req() {
         net_config_rom_bus.data_read.rd_o.write(1);
+        net_config_rom_bus.adr_o.write(LAYERS_COUNT_ADR);
+
+        stage_ = Stage::ReadLayersCountRead;
+
+        cycles_to_wait = 1;
+    }
+
+    void stage_read_layers_count_read() {
+        layers_count_ = net_config_rom_bus.data_read.data_i->read();
+
+        net_config_rom_bus.adr_o.write(LAYERS_NEURON_COUNT_ADR);
+
+        stage_ = Stage::ReadInputLayerNeuronsCountRead;
+
+        cycles_to_wait = 1;
+    }
+
+    void stage_read_input_layer_neurons_count() {
+        curr_layer_neurons_count_ = net_config_rom_bus.data_read.data_i->read();
+    
+        current_layer_ = 1;
+
+        stage_ = Stage::ReadCurrentLayerNeuronsCountRequest;
+    }
+
+    void stage_read_current_layer_neurons_count_request() {
         net_config_rom_bus.adr_o.write(LAYERS_NEURON_COUNT_ADR + current_layer_);
 
-        readed_count_ = 0;
+        stage_ = Stage::ReadCurrentLayerNeuronsCountRead;
+
+        cycles_to_wait = 1;
+    }
+
+    void stage_read_current_layer_neurons_count_read() {
+        prev_layer_neurons_count_ = curr_layer_neurons_count_;
+        curr_layer_neurons_count_ = net_config_rom_bus.data_read.data_i->read();
+
+        weights_data_size_ = prev_layer_neurons_count_ * curr_layer_neurons_count_;
 
         for (auto& i : pe_bus) {
             i.compute_neuron_o->write(false);
+            i.data_neuron_o->write(prev_layer_neurons_count_);
             i.rst_o->write(true);
         }
+
+        readed_count_ = 0;
+
+        net_config_rom_bus.data_read.rd_o->write(true);
+        ram_bus.data_read.rd_o->write(true);
+
+        stage_ = Stage::ReadLayerDataRequest;
+
+        cycles_to_wait = 2;
     }
 
-    void stage_send_layer_data_to_pe() {
+    void stage_read_layer_data_request() {
         for (auto& i : pe_bus) {
             i.rst_o->write(false);
         }
 
-        auto neuron = read_from_ram(readed_count_);
-        auto weight = read_from_ram(LAYERS_NEURON_COUNT_ADR + layers_count_ + readed_count_);
+        net_config_rom_bus.adr_o.write(LAYERS_NEURON_COUNT_ADR + layers_count_ + readed_count_);
+        ram_bus.adr_o->write(readed_count_);
+        
+        stage_ = Stage::ReadLayerDataRead;
 
-        if (readed_count_ >= weights_data_size_) {
-            for (auto& i : pe_bus) {
-                i.compute_neuron_o->write(true);
-                // i.rst_o->write(true);
-            }
-            stage_ = Stage::ComputeLayer;
+        cycles_to_wait = 1;
+    }
+
+    void stage_read_layer_data_read() {
+        auto neuron = ram_bus.data_read.data_i->read();
+        auto weight = net_config_rom_bus.data_read.data_i->read();
+    
+        for (auto& pe : pe_bus) {
+            pe.data_neuron_o->write(neuron);
+            pe.data_weight_o->write(weight);
         }
 
         readed_count_++;
+
+        if (readed_count_ >= weights_data_size_) {
+            cycles_to_wait = 5;
+
+            int a = 0;
+            for (auto& i : pe_bus) {
+                i.compute_neuron_o->write(true);
+                i.rst_o->write(true);
+
+                i.out_neuron_index_o->write(a);
+
+                a++;
+            }
+
+            stage_ = Stage::Compute;
+        } else {
+            stage_ = Stage::ReadLayerDataRequest;
+        }
     }
+
 
     void stage_compute() {
         for (auto& i : pe_bus) {
@@ -186,46 +234,40 @@ private:
 
         for (auto& i : pe_bus) {
             if (i.is_done_i->read()) {
+                auto computed_neuron = i.result_neuron_i->read();
+                auto computed_neuron_index = i.out_neuron_index_o->read();
+
                 std::cout << std::format(
                     "Neuorn {}, Result {}", 
-                    i.out_neuron_index_o->read(),
-                    *(float*)&i.result_neuron_i->read()
+                    computed_neuron_index,
+                    *(float*)&computed_neuron
                 ) << std::endl;
 
+                ram_bus.adr_o->write(computed_neuron_index);
+                ram_bus.data_write.wr_o->write(true);
+                ram_bus.data_write.data_o->write(computed_neuron);
+
+                computed_neurons_++;
+                
                 i.out_neuron_index_o->write(computed_neurons_);
                 i.rst_o->write(true);
-                computed_neurons_++;
+                
+
+                cycles_to_wait = 1;
+
+                if (computed_neurons_ >= curr_layer_neurons_count_) {
+                    sc_core::sc_stop();
+                }
+
+                return;
             }
 
-            if (computed_neurons_ >= curr_layer_neurons_count_) {
-                sc_core::sc_stop();
-            }
-            // i.rst_o->write(true);
+
         }
     }
 
-    void cycle() {
-        switch (stage_) {
-            case Stage::LoadNetConfig:
-                stage_load_net_config();
-                break;
-            case Stage::LoadNetInputLayerCount:
-                stage_load_net_input_layer();
-                break;
-            case Stage::LoadLayerData:
-                stage_load_layer_data(); break;
-            case Stage::SendLayerDataToPe:
-                stage_send_layer_data_to_pe();break;
-            case Stage::ComputeLayer:
-                stage_compute();break;
-            
-            break;
-        }
-    }
-
-    void main_thread() {
-        while (1) { cycle(); }
-    }
+    /////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////
 
 };
 

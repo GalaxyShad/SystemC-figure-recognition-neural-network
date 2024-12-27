@@ -28,6 +28,10 @@ SC_MODULE(RandomAccessMemory) {
     sensitive << clk_i.pos();
   }
 
+  void set(int i, u32 val) {
+    mem_[i] = val;
+  }
+
   void bus_write() {
     if (wr_i.read())
       mem_[addr_bi.read()] = data_bi.read();
