@@ -26,7 +26,7 @@ SC_MODULE(NetConfigRom) {
     for (auto &m : nn_model.weights()) {
       for (int out = 0; out < m.out_count(); out++) {
         for (int in = 0; in < m.in_count(); in++) {
-          float weight = m.weight_between(in, out);
+          float weight = m.weight_between(out, in);
           uint32_t float_raw = *((uint32_t *)(&weight));
 
           mem_.push_back(float_raw);
