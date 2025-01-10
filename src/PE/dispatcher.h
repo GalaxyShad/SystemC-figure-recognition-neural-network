@@ -15,11 +15,11 @@
 SC_MODULE(Dispatcher) {
 
 public:
-    // Входы
-    sc_core::sc_in<bool> clk_i;                  // Синхросигнал
+    // пїЅпїЅпїЅпїЅпїЅ
+    sc_core::sc_in<bool> clk_i;                  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
-    // Выходы
-    sc_core::sc_out<bool> is_ready_o;            // Флаг готовности к работе
+    // пїЅпїЅпїЅпїЅпїЅпїЅ
+    sc_core::sc_out<bool> is_ready_o;            // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 
     ReadOnlyMemoryBus net_config_rom_bus;
     MemoryBus ram_bus;

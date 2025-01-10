@@ -2,8 +2,8 @@
 #define MYSYSTEMCPROJECT_NETCONFIGROM_H
 
 #include "../Pure-CPP20-Neural-Network/src/neural_network_model.h"
-#include "sysc/kernel/sc_module.h"
-#include "sysc/kernel/sc_module_name.h"
+//#include "sysc/kernel/sc_module.h"
+//#include "sysc/kernel/sc_module_name.h"
 #include "systemc.h"
 
 SC_MODULE(NetConfigRom) {

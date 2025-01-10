@@ -21,12 +21,16 @@ struct PeSignals {
 };
 
 int sc_main(int argc, char *argv[]) {
-
-    auto neural_net_model_serialized = load_binary("Pure-CPP20-Neural-Network/figures_model_o#^_x10_each.bin");
+    printf("Start progremm");
+    auto neural_net_model_serialized = load_binary("../Pure-CPP20-Neural-Network/figures_model_o#^_x10_each.bin");
+    printf("Start neural_net_model");
     auto neural_net_model = NeuralNetworkModel::deserialize(neural_net_model_serialized);
 
+    printf("Start NetConfig");
     NetConfigRom net_config("NNConfigRom", neural_net_model);
+    printf("Start Memory");
     RandomAccessMemory memory("memory", 256);
+    printf("Start dispatcher");
     Dispatcher dispatcher("dispatcher");
     
 
