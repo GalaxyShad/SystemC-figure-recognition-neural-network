@@ -241,7 +241,6 @@ private:
         for (auto& i : pe_bus) {
             i.rst_o->write(false);
         }
-
         for (auto& i : pe_bus) {
             if (i.is_done_i->read()) {
                 auto computed_neuron = i.result_neuron_i->read();
@@ -253,7 +252,6 @@ private:
                     *(float*)&computed_neuron
                 ) << std::endl;
 
-                std::cout << "Tick " << tick << std::endl;
 
                 ram_bus.adr_o->write(computed_neuron_index);
                 ram_bus.data_write.wr_o->write(true);
@@ -272,6 +270,7 @@ private:
                     current_layer_++;
 
                     if (current_layer_ >= layers_count_) {
+                        std::cout << "Tick " << tick << std::endl;
                         sc_core::sc_stop();
                     } else {
                         stage_ = Stage::ReadCurrentLayerNeuronsCountRequest;
@@ -279,7 +278,6 @@ private:
                         compute_neuron_index_ = 0;
                     }
                 }
-
                 return;
             }
 
