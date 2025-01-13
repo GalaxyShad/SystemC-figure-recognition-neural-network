@@ -174,7 +174,6 @@ private:
         u32 res_u32 = *(u32*)&res;
 
         result_neuron_o->write(res_u32);
-
         is_computation_end_o->write(true);
     }
 

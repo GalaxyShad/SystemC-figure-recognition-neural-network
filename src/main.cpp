@@ -23,10 +23,11 @@ struct PeSignals {
 int sc_main(int argc, char *argv[]) {
 
     std::string model_filename; 
-    // model_filename = "figures-model_o#^_-49-14-3-_x5each.bin";
-    model_filename = "figures-model_o#^_-49-3-_x5each.bin";
+    model_filename = "figures-model_o#^_-49-14-3-_x5each.bin";
+    //model_filename = "figures-model_o#^_-49-3-_x5each.bin";
+    //model_filename = "figures_model_o#^_x50_each.bin";
 
-    auto path = "Pure-CPP20-Neural-Network/" + model_filename;
+    auto path = "../Pure-CPP20-Neural-Network/" + model_filename;
 
     auto neural_net_model_serialized = load_binary(path.c_str());
     auto neural_net_model = NeuralNetworkModel::deserialize(neural_net_model_serialized);
@@ -48,17 +49,17 @@ int sc_main(int argc, char *argv[]) {
     //     0, 0, 0, 0, 0, 0, 0,
     // };
 
-    // std::vector<int> a = {
-    //     0, 0, 0, 0, 0, 0, 0,
-    //     0, 0, X, X, X, 0, 0,
-    //     0, X, 0, 0, 0, X, 0,
-    //     0, X, 0, X, 0, X, 0,
-    //     0, X, 0, 0, 0, X, 0,
-    //     0, 0, X, X, X, 0, 0,
-    //     0, 0, 0, 0, 0, 0, 0,
-    // };
-
     std::vector<int> a = {
+        0, 0, 0, 0, 0, 0, 0,
+        0, 0, X, X, X, 0, 0,
+        0, X, 0, 0, 0, X, 0,
+        0, X, 0, X, 0, X, 0,
+        0, X, 0, 0, 0, X, 0,
+        0, 0, X, X, X, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,
+    };
+
+    /*std::vector<int> a = {
         0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, X, 0, 0, 0,
         0, 0, X, 0, X, 0, 0,
@@ -66,7 +67,7 @@ int sc_main(int argc, char *argv[]) {
         X, 0, 0, 0, 0, 0, X,
         X, X, X, X, X, X, X,
         0, 0, 0, 0, 0, 0, 0,
-    };
+    };*/
 
     #undef X
 
