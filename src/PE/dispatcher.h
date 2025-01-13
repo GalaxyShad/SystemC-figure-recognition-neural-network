@@ -15,11 +15,11 @@
 SC_MODULE(Dispatcher) {
 
 public:
-    // Входы
-    sc_core::sc_in<bool> clk_i;                  // Синхросигнал
+    // пїЅпїЅпїЅпїЅпїЅ
+    sc_core::sc_in<bool> clk_i;                  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
-    // Выходы
-    sc_core::sc_out<bool> is_ready_o;            // Флаг готовности к работе
+    // пїЅпїЅпїЅпїЅпїЅпїЅ
+    sc_core::sc_out<bool> is_ready_o;            // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 
     ReadOnlyMemoryBus net_config_rom_bus;
     MemoryBus ram_bus;
@@ -51,6 +51,8 @@ public:
     }
 
 private:
+    u32 tick = 0;
+
     u32 current_layer_ = 1;
 
     u32 layers_count_ = 0;
@@ -58,6 +60,7 @@ private:
     u32 curr_layer_neurons_count_ = 0;
     u32 weights_data_size_ = 0;
 
+    u32 previos_layers_move = 0;
     u32 readed_count_ = 0;
     u32 computed_neurons_ = 0;
     u32 compute_neuron_index_ = 0;
@@ -69,12 +72,12 @@ private:
     bool tickusha_ = true;
 
     enum class Stage {
-        // Состояния инициализации
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         ReadLayersCountRequest,
         ReadLayersCountRead,
         ReadInputLayerNeuronsCountRead,
 
-        // Состояния чтения следующего слоя
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
         ReadCurrentLayerNeuronsCountRequest,
         ReadCurrentLayerNeuronsCountRead,
 
@@ -94,6 +97,7 @@ private:
 private:
 
     void cycle() {
+        ++tick;
         if (cycles_to_wait > 0) {
             cycles_to_wait--;
             return;
@@ -122,10 +126,10 @@ private:
     /////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////
 
-    // INFO на чтение данных из памяти уходит 3 такта
-    // 1. выставление адреса и флага чтения памяти
-    // 2. ожидание чтобы памяти отработала 
-    // 3. чтение результата data шины памяти
+    // INFO пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ 3 пїЅпїЅпїЅпїЅпїЅ
+    // 1. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+    // 2. пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 
+    // 3. пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ data пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 
     void stage_read_layers_count_req() {
         net_config_rom_bus.data_read.rd_o.write(1);
@@ -174,6 +178,7 @@ private:
             i.rst_o->write(true);
         }
 
+        previos_layers_move += readed_count_;
         readed_count_ = 0;
 
         net_config_rom_bus.data_read.rd_o->write(true);
@@ -189,7 +194,7 @@ private:
             i.rst_o->write(false);
         }
 
-        net_config_rom_bus.adr_o.write(LAYERS_NEURON_COUNT_ADR + layers_count_ + readed_count_);
+        net_config_rom_bus.adr_o.write(LAYERS_NEURON_COUNT_ADR + layers_count_ + readed_count_ + previos_layers_move);
         ram_bus.adr_o->write(readed_count_);
         
         stage_ = Stage::ReadLayerDataRead;
@@ -200,6 +205,10 @@ private:
     void stage_read_layer_data_read() {
         auto neuron = ram_bus.data_read.data_i->read();
         auto weight = net_config_rom_bus.data_read.data_i->read();
+
+        auto float_neuron = *(float*)(&neuron);
+        auto float_weight = *(float*)(&weight);
+        //std::cout << "Neuron " << float_neuron << " weight: " << float_weight << "\n";
     
         for (auto& pe : pe_bus) {
             pe.data_neuron_o->write(neuron);
@@ -232,7 +241,6 @@ private:
         for (auto& i : pe_bus) {
             i.rst_o->write(false);
         }
-
         for (auto& i : pe_bus) {
             if (i.is_done_i->read()) {
                 auto computed_neuron = i.result_neuron_i->read();
@@ -243,6 +251,7 @@ private:
                     computed_neuron_index,
                     *(float*)&computed_neuron
                 ) << std::endl;
+
 
                 ram_bus.adr_o->write(computed_neuron_index);
                 ram_bus.data_write.wr_o->write(true);
@@ -261,6 +270,7 @@ private:
                     current_layer_++;
 
                     if (current_layer_ >= layers_count_) {
+                        std::cout << "Tick " << tick << std::endl;
                         sc_core::sc_stop();
                     } else {
                         stage_ = Stage::ReadCurrentLayerNeuronsCountRequest;
@@ -268,7 +278,6 @@ private:
                         compute_neuron_index_ = 0;
                     }
                 }
-
                 return;
             }
 

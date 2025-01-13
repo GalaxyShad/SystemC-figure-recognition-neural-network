@@ -2,8 +2,8 @@
 #define MYSYSTEMCPROJECT_NETCONFIGROM_H
 
 #include "../Pure-CPP20-Neural-Network/src/neural_network_model.h"
-#include "sysc/kernel/sc_module.h"
-#include "sysc/kernel/sc_module_name.h"
+//#include "sysc/kernel/sc_module.h"
+//#include "sysc/kernel/sc_module_name.h"
 #include "systemc.h"
 
 SC_MODULE(NetConfigRom) {
@@ -24,6 +24,7 @@ SC_MODULE(NetConfigRom) {
     }
 
     for (auto &m : nn_model.weights()) {
+      int d = 0;
       for (int out = 0; out < m.out_count(); out++) {
         for (int in = 0; in < m.in_count(); in++) {
           float weight = m.weight_between(out, in);
@@ -50,6 +51,7 @@ private:
     auto adr = addr_bi.read();
     sc_assert(adr < mem_.size());
 
+    auto current_value =  *(float*)(&mem_[adr]);
     data_bo.write(mem_[adr]);
   }
 };

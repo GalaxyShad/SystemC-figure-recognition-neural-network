@@ -3,30 +3,30 @@
 
 #include "shared/ram.h"
 
-#include "sysc/communication/sc_signal_ports.h"
-#include "sysc/kernel/sc_module.h"
-#include "sysc/kernel/sc_simcontext.h"
+//#include "sysc/communication/sc_signal_ports.h"
+//#include "sysc/kernel/sc_module.h"
+//#include "sysc/kernel/sc_simcontext.h"
 #include "systemc"
 #include "tinyint.h"
-#include <sys/_types/_pid_t.h>
+//#include <sys/_types/_pid_t.h>
 #include <sys/wait.h>
 
 SC_MODULE(PeCore) {
 public:
-    // Входы
-    sc_core::sc_in<bool> compute_mode_i;  // 0 - режим чтения весов между слоями во внутренюю память
-                                          // 1 - режим вычисления нейрона
+    // пїЅпїЅпїЅпїЅпїЅ
+    sc_core::sc_in<bool> compute_mode_i;  // 0 - пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+                                          // 1 - пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
-    sc_core::sc_in<bool> clk_i;                  // Синхросигнал
-    sc_core::sc_in<bool> rst_i;                  // Сброс
+    sc_core::sc_in<bool> clk_i;                  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+    sc_core::sc_in<bool> rst_i;                  // пїЅпїЅпїЅпїЅпїЅ
 
-    sc_core::sc_in<u32>  output_neuron_index_i;  // Индекс вычисляемого выходного нейрона
-    sc_core::sc_in<u32>  data_weights_in_i;      // Шина данных весов
-    sc_core::sc_in<u32>  data_neurons_i;         // Шина данных нейронов
+    sc_core::sc_in<u32>  output_neuron_index_i;  // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+    sc_core::sc_in<u32>  data_weights_in_i;      // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
+    sc_core::sc_in<u32>  data_neurons_i;         // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
-    // Выходы
-    sc_core::sc_out<bool> is_computation_end_o;   // Флаг готовности к работе
-    sc_core::sc_out<u32>  result_neuron_o;        // Посчитанный нейрон
+    // пїЅпїЅпїЅпїЅпїЅпїЅ
+    sc_core::sc_out<bool> is_computation_end_o;   // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+    sc_core::sc_out<u32>  result_neuron_o;        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 
 private:
     struct InternalMemorySignals {
@@ -174,7 +174,6 @@ private:
         u32 res_u32 = *(u32*)&res;
 
         result_neuron_o->write(res_u32);
-
         is_computation_end_o->write(true);
     }
 

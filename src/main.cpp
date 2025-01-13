@@ -23,15 +23,31 @@ struct PeSignals {
 int sc_main(int argc, char *argv[]) {
 
     std::string model_filename; 
+    // model_filename = "figures-model_o#^_-49-3-_x5each.bin";
     // model_filename = "figures-model_o#^_-49-14-3-_x5each.bin";
-    model_filename = "figures-model_o#^_-49-3-_x5each.bin";
+    // model_filename = "figures-model_o#^_-49-20-10-3-_x5each.bin";
+    model_filename = "figures-model_o#^_-49-5-5-3-_x5each.bin";
 
     auto path = "Pure-CPP20-Neural-Network/" + model_filename;
+
+    // constexpr int CORES_COUNT = 1;
+    // constexpr int CORES_COUNT = 2;
+    // constexpr int CORES_COUNT = 3;
+    // constexpr int CORES_COUNT = 4;
+    // constexpr int CORES_COUNT = 5;
+    // constexpr int CORES_COUNT = 6;
+    // constexpr int CORES_COUNT = 7;
+    // constexpr int CORES_COUNT = 8;
+    // constexpr int CORES_COUNT = 9;
+    // constexpr int CORES_COUNT = 10;
+    constexpr int CORES_COUNT = 100;
+
+    ///
+    ///
 
     auto neural_net_model_serialized = load_binary(path.c_str());
     auto neural_net_model = NeuralNetworkModel::deserialize(neural_net_model_serialized);
 
-    constexpr int CORES_COUNT = 1;
 
     NetConfigRom net_config("NNConfigRom", neural_net_model);
     RandomAccessMemory memory("memory", 256);
@@ -48,17 +64,17 @@ int sc_main(int argc, char *argv[]) {
     //     0, 0, 0, 0, 0, 0, 0,
     // };
 
-    // std::vector<int> a = {
-    //     0, 0, 0, 0, 0, 0, 0,
-    //     0, 0, X, X, X, 0, 0,
-    //     0, X, 0, 0, 0, X, 0,
-    //     0, X, 0, X, 0, X, 0,
-    //     0, X, 0, 0, 0, X, 0,
-    //     0, 0, X, X, X, 0, 0,
-    //     0, 0, 0, 0, 0, 0, 0,
-    // };
-
     std::vector<int> a = {
+        0, 0, 0, 0, 0, 0, 0,
+        0, 0, X, X, X, 0, 0,
+        0, X, 0, 0, 0, X, 0,
+        0, X, 0, X, 0, X, 0,
+        0, X, 0, 0, 0, X, 0,
+        0, 0, X, X, X, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,
+    };
+
+    /*std::vector<int> a = {
         0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, X, 0, 0, 0,
         0, 0, X, 0, X, 0, 0,
@@ -66,7 +82,7 @@ int sc_main(int argc, char *argv[]) {
         X, 0, 0, 0, 0, 0, X,
         X, X, X, X, X, X, X,
         0, 0, 0, 0, 0, 0, 0,
-    };
+    };*/
 
     #undef X
 
